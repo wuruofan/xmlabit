@@ -17,7 +17,19 @@
     <price>29.19</price>
   </book>
   <book>
+    <title lang="eng">readme</title>
+    <price>0.95</price>
+  </book>
+  <book>
+    <title lang="eng">readme2</title>
+    <price>-0.955</price>
+  </book>
+  <book>
     <title lang="eng">Learning XML</title>
     <price>39.95</price>
+  </book>
+  <book>
+    <title lang="eng">readme3</title>
+    <price>0.95</price>
   </book>
 </bookstore>

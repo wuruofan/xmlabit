@@ -3,17 +3,19 @@
 #
 #   Author        : rf.w
 #   Email         : demonsimon#gmail.com
-#   File Name     : pugixml_test.cpp
-#   Last Modified : 2020-06-28 19:00
+#   File Name     : xmlabit.cpp
+#   Last Modified : 2021-04-20 17:13
 #   Describe      :
 #
 # ====================================================*/
 
 #include <getopt.h>
 #include <unistd.h>
+#include <cassert>
 
 #include <cstring>
 #include <ctime>
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <regex>
@@ -22,6 +24,8 @@
 #include <vector>
 
 #include "pugixml.hpp"
+
+#define ENABLE_NUMERIC_COMPAROR 0
 
 using namespace std;
 
@@ -40,24 +44,15 @@ static const std::string kUsage =
     "/xpath/of/parent_node#node_name@node_or_attribute_name, for example: "
     "/bookstore/#books@price.\n"
     "  -o, --output\t\tOuput xml file path which sorted by xmlabit.\n"
+#if ENABLE_NUMERIC_COMPAROR
     "  -n, --numeric\t\tTreat nodes/attributes value as number.\n"
+#endif
     "  -d, --desecend\tSort nodes/attributes value in deseconding order.\n"
     "  -i, --ignore-case\tCase insensitive while sorting not in numeric "
     "mode.\n";
 
-struct simple_walker : pugi::xml_tree_walker {
-  virtual bool for_each(pugi::xml_node& node) {
-    for (int i = 0; i < depth(); ++i) std::cout << "  ";  // indentation
 
-    std::cout << node_types[node.type()] << ": name='" << node.name()
-              << "', value='" << node.value() << "'\n";
-
-    return true;  // continue traversal
-  }
-};
-
-const char* get_compared_value(pugi::xml_node node,
-                               const char* attribute_name) {
+const char* get_value(pugi::xml_node node, const char* attribute_name) {
   if (node.attribute(attribute_name))
     return node.attribute(attribute_name).value();
   else if (node.child(attribute_name))
@@ -110,10 +105,9 @@ pugi::xml_node find_insert_position_node(pugi::xml_node start_node,
   pugi::xml_node node = next_node(start_node, walking_previous);
 
   while (node) {
-    comparator_result =
-        comparator(current_value, get_compared_value(node, attribute_name),
-                   ascending_order);
-    if (stopping_comparartor_flag * comparator_result) {
+    comparator_result = comparator(
+        current_value, get_value(node, attribute_name), ascending_order);
+    if (stopping_comparartor_flag && comparator_result) {
       // find position
       break;
     } else {
@@ -126,62 +120,86 @@ pugi::xml_node find_insert_position_node(pugi::xml_node start_node,
 }
 
 int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
-                  const char* attribute_name, bool ascending_order = true) {
+                  const char* attribute_name, bool ascending_order = true, bool is_numeric = false) {
   assert(parent_node);
   // assert(parent_node.children(child_name));
 
   pugi::xml_node prev_node;
-  pugi::xml_node pos_node, tmp_node;
+  pugi::xml_node pos_node;
+  pugi::xml_node tmp_curr_node;
 
   pugi::xml_node mid_sorted_node;
   int sorted_node_count = 0;
 
   for (pugi::xml_node curr_node = parent_node.child(child_name); curr_node;
        curr_node = curr_node.next_sibling(child_name), sorted_node_count++) {
-    tmp_node = prev_node = curr_node.previous_sibling(child_name);
+    tmp_curr_node = curr_node.previous_sibling(child_name);
     pos_node = curr_node;
 
-    if (sorted_node_count % 2 == 0) {
-      if (mid_sorted_node)
-        mid_sorted_node = mid_sorted_node.next_sibling(child_name);
-      else
-        mid_sorted_node = curr_node;
-    }
+    std::cout << "---------- curr_node ----------" << std::endl;
+    curr_node.print(std::cout);
+    std::cout << "---------- mid_node ----------" << std::endl;
+    mid_sorted_node.print(std::cout);
 
-    if (prev_node.empty()) {
+    if (mid_sorted_node.empty()) {
       std::cout << "This is the first node !" << std::endl;
+      mid_sorted_node = curr_node;
       continue;
     }
-    /* std::cout << "---------- curr_node ----------" << std::endl; */
-    // curr_node.print(std::cout);
-    // std::cout << "---------- prev_node ----------" << std::endl;
-    /* prev_node.print(std::cout); */
 
-    // getchar();
+    int result = comparator(get_value(mid_sorted_node, attribute_name),
+                            get_value(curr_node, attribute_name), ascending_order, is_numeric);
 
-    while (!prev_node.empty() &&
-           comparator(get_compared_value(prev_node, attribute_name),
-                      get_compared_value(curr_node, attribute_name)) > 0) {
-      // getchar();
-      pos_node = prev_node;
-      prev_node = prev_node.previous_sibling(child_name);
+    if (result > 0) {
+      // mid_sorted_node value > curr_node, need find pos before it.
+      pugi::xml_node last_pos_node = mid_sorted_node;
+      pos_node = mid_sorted_node.previous_sibling(child_name);
+      while (!pos_node.empty() &&
+             comparator(get_value(pos_node, attribute_name),
+                        get_value(curr_node, attribute_name), ascending_order, is_numeric) > 0) {
+        last_pos_node = pos_node;
+        pos_node = pos_node.previous_sibling(child_name);
+      }
+
+      std::cout << "---------- pos_node ----------" << std::endl;
+      pos_node.print(std::cout);
+      if (pos_node.empty()) {
+        std::cout << "---------- last_pos_node ----------" << std::endl;
+        last_pos_node.print(std::cout);
+
+        parent_node.insert_move_before(curr_node, last_pos_node);
+        curr_node = tmp_curr_node;
+      } else {
+        parent_node.insert_move_after(curr_node, pos_node);
+        curr_node = tmp_curr_node;
+      }
+    } else {
+      // mid_sorted_node value < curr_node, need find pos after it.
+      pos_node = mid_sorted_node.next_sibling(child_name);
+      while (pos_node != curr_node &&
+             comparator(get_value(pos_node, attribute_name),
+                        get_value(curr_node, attribute_name), ascending_order, is_numeric) < 0) {
+        pos_node = pos_node.next_sibling(child_name);
+      }
+
+      std::cout << "---------- pos_node ----------" << std::endl;
+      pos_node.print(std::cout);
+      if (pos_node == curr_node) {
+        // do nothing
+      } else {
+        parent_node.insert_move_after(curr_node, pos_node);
+        curr_node = tmp_curr_node;
+      }
     }
 
-    /*  std::cout << "@@@@@@@@@@ pos_node @@@@@@@@@@" << std::endl; */
-    /* pos_node.print(std::cout); */
-    // getchar();
-
-    if (curr_node != pos_node) {
-      // std::cout << "@@ Insert curr_node before pos_node" << endl;
-      parent_node.insert_move_before(curr_node, pos_node);
-      curr_node = tmp_node;
+    if (sorted_node_count % 2 == 0) {
+      if (result > 0) {
+        // already insert one node in front mid_sorted_node, not need to move.
+      } else
+        mid_sorted_node = mid_sorted_node.next_sibling(child_name);
     }
-
-    /*  std::cout << "********** all **********" << std::endl; */
-    // parent_node.print(std::cout);
-    // std::cout << "\n"
-    /* << ">>>>>>> next loop" << endl; */
-    // getchar();
+    std::cout << "===============================" << std::endl;
+    parent_node.print(std::cout);
   }
 
   return 0;
@@ -210,8 +228,8 @@ pugi::xml_node insert_node_relatively(pugi::xml_node& parent_node,
     ret_node = parent_node.append_copy(current_node);
 
   } else {
-    current_value = get_compared_value(current_node, attribute_name);
-    last_value = get_compared_value(last_node, attribute_name);
+    current_value = get_value(current_node, attribute_name);
+    last_value = get_value(last_node, attribute_name);
 
     assert(current_value);
     assert(last_value);
@@ -242,14 +260,11 @@ pugi::xml_node insert_node_relatively(pugi::xml_node& parent_node,
   return ret_node;
 }
 
-
-
 std::string get_raw_string(pugi::xml_node node) {
   std::stringstream ss;
   node.print(ss, "  ", pugi::format_raw);
   return ss.str();
 }
-
 
 std::string output_file_path(std::string input_file_path) {
   std::stringstream ss;
@@ -280,12 +295,16 @@ std::string output_file_path(std::string input_file_path) {
 int main(int argc, char** argv) {
   // xmlabit -t /root/plcy/safeapp#item@name -n -d -o out_path.xml file_path.xml
   int ret = 0;
+#if ENABLE_NUMERIC_COMPAROR
   const char* optstring = "t:o:nidvh";
+#else
+  const char* optstring = "t:o:idvh"; // t:o:nidvh
+#endif
   std::string node_query_string;
   std::string out_file_path;
   std::string parent_node_path, target_node_name, target_attribute_name;
   bool using_numeric_comparator = false, comparator_ignore_case = false,
-       desecending_order = false;
+       acsecending_order = true;
 
   std::vector<std::string> input_files;
 
@@ -301,7 +320,9 @@ int main(int argc, char** argv) {
         {"help", no_argument, 0, 'h'},
         {"target", required_argument, 0, 't'},
         {"output", required_argument, 0, 'o'},
+#if ENABLE_NUMERIC_COMPAROR
         {"numeric", no_argument, 0, 'n'},
+#endif
         {"desecend", no_argument, 0, 'd'},
         {"ignore-case", no_argument, 0, 'i'},
         {0, 0, 0, 0}};
@@ -353,26 +374,22 @@ int main(int argc, char** argv) {
         } else {
           std::cout << "Illegal arguments: " << node_query_string << std::endl;
         }
-        /* if (std::regex_match(node_query_string, query_match, query_regex)) {
-         */
-        // std::cout << node_query_string << '\n';
-        // for (size_t i = 0; i < query_match.size(); ++i) {
-        // std::ssub_match sub_match = query_match[i];
-        // std::cout << "  submatch " << i << ": " << sub_match.str() << '\n';
-        // }
-        /* } */
+
         break;
       case 'o':
         out_file_path = optarg;
         break;
+#if ENABLE_NUMERIC_COMPAROR
       case 'n':
         using_numeric_comparator = true;
         break;
+#endif
       case 'i':
         comparator_ignore_case = true;
         break;
       case 'd':
-        desecending_order = true;
+        acsecending_order = false;
+        std::cout << "choose descending order!" << std::endl;
         break;
       default:
         /* Not sure how to get here... */
@@ -395,57 +412,20 @@ int main(int argc, char** argv) {
   }
 
   pugi::xml_document dx;
-  // pugi::xml_document output;
 
-  // load_sys_plcy_file(dx, "9001009_default.xml");
   dx.load_file("books.xml");
 
   if (!dx.empty()) {
     dx.save(std::cout);
-    
-    pugi::xml_node last_node;
-    // pugi::xml_node safeapp_node =
-    // dx.select_node("/root/plcy/safeapp").node();
-    // pugi::xpath_node_set targets = dx.select_nodes(parent_node_path.c_str());
+
     pugi::xpath_node target_parent_xnode =
         dx.select_node(parent_node_path.c_str());
-    // pugi::xpath_node_set targets =
-    // dx.select_nodes("/root/plcy/safeapp/item");
-
-    // for (pugi::xpath_node_set::const_iterator it = targets.begin();
-    // it != targets.end(); it++) {
-    // pugi::xpath_node node = *it;
-    // std::cout << node.node().child("price").text().get() << std::endl;
-    // }
-
-    /*   for (pugi::xml_node item : safeapp_node.children("item")) { */
-    // std::cout << get_compared_value(item, "hash") << endl;
-    // last_node = insert_node_relatively(root_node, item, last_node, "hash");
-    /* } */
-
-    // output.save_file("output.xml");
-
-    // getchar();
-    /*  for (pugi::xml_node tool : safeapp_node.children("item")) { */
-    // std::cout << "item:";
-
-    // for (pugi::xml_attribute attr : tool.attributes()) {
-    // std::cout << " " << attr.name() << "=" << attr.value();
-    // }
-
-    // for (pugi::xml_node child : tool.children()) {
-    // std::cout << ", child " << child.name();
-    // }
-
-    // std::cout << std::endl;
-    /* } */
-    // getchar();
 
     std::clock_t c_start = std::clock();
 
     auto t_start = std::chrono::high_resolution_clock::now();
     sort_xml_node(target_parent_xnode.node(), target_node_name.c_str(),
-                  target_attribute_name.c_str());
+                  target_attribute_name.c_str(), acsecending_order, using_numeric_comparator);
     std::clock_t c_end = std::clock();
 
     auto t_end = std::chrono::high_resolution_clock::now();

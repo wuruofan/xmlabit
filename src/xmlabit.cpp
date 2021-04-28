@@ -4,7 +4,7 @@
 #   Author        : rf.w
 #   Email         : demonsimon#gmail.com
 #   File Name     : xmlabit.cpp
-#   Last Modified : 2021-04-20 17:13
+#   Last Modified : 2021-04-28 20:11
 #   Describe      :
 #
 # ====================================================*/
@@ -301,12 +301,13 @@ int main(int argc, char** argv) {
   const char* optstring = "t:o:idvh"; // t:o:nidvh
 #endif
   std::string node_query_string;
+  std::string in_file_path;
   std::string out_file_path;
   std::string parent_node_path, target_node_name, target_attribute_name;
   bool using_numeric_comparator = false, comparator_ignore_case = false,
        acsecending_order = true;
 
-  std::vector<std::string> input_files;
+  // std::vector<std::string> input_files;
 
   std::regex query_regex("\\S+#\\S+@\\S+");
   // std::smatch query_match;
@@ -400,20 +401,24 @@ int main(int argc, char** argv) {
 
   /* Deal with non-option arguments here */
   if (optind < argc) {
-    while (optind < argc) {
-      input_files.push_back(argv[optind]);
-      cout << argv[optind] << endl;
-      optind++;
-    }
-  }
+    if (optind < argc - 1) {
+      std::cout << "Error: more than one input file founded! Now only support one input xml file!\n" << std::endl;
+      std::cout << kUsage << std::endl;
 
-  for (std::string path : input_files) {
-    std::cout << output_file_path(path) << std::endl;
+      return -1;
+    }
+
+    in_file_path.assign(argv[optind]);
+//     while (optind < argc) {
+      // input_files.push_back(argv[optind]);
+      // cout << argv[optind] << endl;
+      // optind++;
+    // }
   }
 
   pugi::xml_document dx;
 
-  dx.load_file("books.xml");
+  dx.load_file(in_file_path.c_str());
 
   if (!dx.empty()) {
     dx.save(std::cout);
@@ -439,7 +444,11 @@ int main(int argc, char** argv) {
         << " ms\n"
         << endl;
 
-    dx.save_file("change.xml");
+    if (out_file_path.empty()) {
+      dx.save(std::cout);
+    } else {
+      dx.save_file(out_file_path.c_str());
+    }
   }
 
   return 0;

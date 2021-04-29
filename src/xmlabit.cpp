@@ -4,7 +4,7 @@
 #   Author        : rf.w
 #   Email         : demonsimon#gmail.com
 #   File Name     : xmlabit.cpp
-#   Last Modified : 2021-04-28 20:11
+#   Last Modified : 2021-04-29 14:53
 #   Describe      :
 #
 # ====================================================*/
@@ -36,14 +36,14 @@ static const std::string kVersion = "0.0.1";
 static const std::string kUsage =
     "Sort xml nodes/attributes by alphabet.\n"
     "\nUsage: xmlabit [options] -t <xml_nodes/attributes_name> -o "
-    "<output_xml_file> <input_xml_file_lists>\n"
+    "<output_xml_file> <input_xml_file>\n"
     "\nOptions:\n"
     "  -v, --version\t\tPrint version information.\n"
     "  -h, --help\t\tPrint this usage.\n"
     "  -t, --target\t\tXml nodes/attributes name which need to sort, like: "
     "/xpath/of/parent_node#node_name@node_or_attribute_name, for example: "
     "/bookstore/#books@price.\n"
-    "  -o, --output\t\tOuput xml file path which sorted by xmlabit.\n"
+    "  -o, --output\t\tOuput xml file path which sorted by xmlabit, if none output file argument is provided, then output to the screen.\n"
 #if ENABLE_NUMERIC_COMPAROR
     "  -n, --numeric\t\tTreat nodes/attributes value as number.\n"
 #endif

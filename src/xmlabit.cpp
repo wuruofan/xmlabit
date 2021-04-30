@@ -4,7 +4,7 @@
 #   Author        : rf.w
 #   Email         : demonsimon#gmail.com
 #   File Name     : xmlabit.cpp
-#   Last Modified : 2021-04-29 14:53
+#   Last Modified : 2021-04-30 18:59
 #   Describe      :
 #
 # ====================================================*/
@@ -409,6 +409,7 @@ int main(int argc, char** argv) {
     }
 
     in_file_path.assign(argv[optind]);
+    std::cout << "input file: " << in_file_path << std::endl;
 //     while (optind < argc) {
       // input_files.push_back(argv[optind]);
       // cout << argv[optind] << endl;
@@ -418,7 +419,13 @@ int main(int argc, char** argv) {
 
   pugi::xml_document dx;
 
-  dx.load_file(in_file_path.c_str());
+  pugi::xml_parse_result result = dx.load_file(in_file_path.c_str());
+
+  if (!result) {
+    std::cout << "XML file(" << in_file_path << ") parsed with error: " << result.description() << " !" << std::endl;
+
+    return -result.status;
+  }
 
   if (!dx.empty()) {
     dx.save(std::cout);
@@ -447,7 +454,11 @@ int main(int argc, char** argv) {
     if (out_file_path.empty()) {
       dx.save(std::cout);
     } else {
-      dx.save_file(out_file_path.c_str());
+      bool ret = dx.save_file(out_file_path.c_str());
+
+      if (!ret) {
+        std::cout << "Error: save failed! " << out_file_path << std::endl;
+      }
     }
   }
 

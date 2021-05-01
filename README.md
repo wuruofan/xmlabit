@@ -4,13 +4,14 @@
 
 **A tool sort xml node by pugixml, sort xml nodes/attributes by alphabet.**
 
+![GitHub Action](https://github.com/wuruofan/xmlabit/actions/workflows/cmake.yml/badge.svg)
 
-**Usage**: 
+## Usage: 
 
   `xmlabit [options] -t <xml_nodes/attributes_name> -o <output_xml_file> <input_xml_file>`
 
 
-**Options**:
+## Options:
 
   `-v`, `--version`		Print version information.
   

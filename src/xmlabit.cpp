@@ -4,7 +4,7 @@
 #   Author        : rf.w
 #   Email         : demonsimon#gmail.com
 #   File Name     : xmlabit.cpp
-#   Last Modified : 2021-05-10 20:38
+#   Last Modified : 2021-05-11 19:52
 #   Describe      :
 #
 # ====================================================*/
@@ -102,17 +102,17 @@ inline const pugi::xml_node next_node(pugi::xml_node current_node,
 }
 
 // std::ostream& operator<<(std::ostream& os, const pugi::xml_node &node) {
-  // std::ostringstream oss(std::ios_base::ate);
-  // node.print(oss);
-  // // std::cout << "aaaaaaaaaaa: " << oss.str()<< std::endl;
-  // // os << oss.str();
-  // return os << oss.str();
+// std::ostringstream oss(std::ios_base::ate);
+// node.print(oss);
+// // std::cout << "aaaaaaaaaaa: " << oss.str()<< std::endl;
+// // os << oss.str();
+// return os << oss.str();
 // }
 
 // inline std::string&& to_string(const pugi::xml_node &node) {
-  // std::ostringstream oss(std::ios_base::ate);
-  // node.print(oss);
-  // return std::move(oss.str());
+// std::ostringstream oss(std::ios_base::ate);
+// node.print(oss);
+// return std::move(oss.str());
 // }
 
 pugi::xml_node find_insert_position_node(pugi::xml_node start_node,
@@ -384,7 +384,11 @@ int main(int argc, char** argv) {
 
     choice = getopt_long(argc, argv, optstring, long_options, &option_index);
 
-    if (choice == -1) break;
+    if (choice == -1) {
+      XLOG(E) << "Error: arguments error!\n";
+      XLOG(I) << kUsage;
+      return -EXIT_FAILURE;
+    }
 
     switch (choice) {
       case 'v':
@@ -420,7 +424,7 @@ int main(int argc, char** argv) {
           XLOG(D) << "target node name: " << target_node_name;
           XLOG(D) << "target attribute: " << target_attribute_name;
         } else {
-          XLOG(D) << "Illegal arguments: " << node_query_string;
+          XLOG(E) << "Illegal arguments: " << node_query_string;
         }
 
         break;
@@ -442,7 +446,7 @@ int main(int argc, char** argv) {
       default:
         /* Not sure how to get here... */
         ret = EXIT_FAILURE;
-        break;
+        return ret;
     }
   }
 
@@ -463,6 +467,11 @@ int main(int argc, char** argv) {
     // cout << argv[optind] ;
     // optind++;
     // }
+  }
+
+  if (node_query_string.empty() || in_file_path.empty()) {
+    XLOG(E) << "Error: arguments error!\n";
+    XLOG(I) << kUsage;
   }
 
   pugi::xml_document dx;

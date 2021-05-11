@@ -63,3 +63,6 @@ add_custom_target(copy_xml ALL
   COMMENT "Copying ${test_xml_file} ..."
   )
 endif()
+
+# make install
+install(TARGETS xmlabit RUNTIME DESTINATION bin)

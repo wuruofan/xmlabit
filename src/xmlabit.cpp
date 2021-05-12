@@ -4,7 +4,7 @@
 #   Author        : rf.w
 #   Email         : demonsimon#gmail.com
 #   File Name     : xmlabit.cpp
-#   Last Modified : 2021-05-11 19:52
+#   Last Modified : 2021-05-12 20:28
 #   Describe      :
 #
 # ====================================================*/
@@ -14,6 +14,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <iomanip>
@@ -41,7 +42,7 @@ using namespace xlogger;
 const char* node_types[] = {"null",  "document", "element", "pcdata",
                             "cdata", "comment",  "pi",      "declaration"};
 
-static const std::string kVersion = "0.0.1";
+static const std::string kVersion = "0.1.0";
 static const std::string kUsage =
     "Sort xml nodes/attributes by alphabet.\n"
     "\nUsage: xmlabit [options] -t <xml_nodes/attributes_name> -o "
@@ -51,7 +52,7 @@ static const std::string kUsage =
     "  -h, --help\t\tPrint this usage.\n"
     "  -t, --target\t\tXml nodes/attributes name which need to sort, like: "
     "/xpath/of/parent_node#node_name@node_or_attribute_name, for example: "
-    "/bookstore/#books@price.\n"
+    "/bookstore#books@price.\n"
     "  -o, --output\t\tOuput xml file path which sorted by xmlabit, if none "
     "output file argument is provided, then output to the screen.\n"
 #if ENABLE_NUMERIC_COMPAROR
@@ -384,11 +385,7 @@ int main(int argc, char** argv) {
 
     choice = getopt_long(argc, argv, optstring, long_options, &option_index);
 
-    if (choice == -1) {
-      XLOG(E) << "Error: arguments error!\n";
-      XLOG(I) << kUsage;
-      return -EXIT_FAILURE;
-    }
+    if (choice == -1) break;
 
     switch (choice) {
       case 'v':
@@ -404,6 +401,7 @@ int main(int argc, char** argv) {
         /* getopt_long will have already printed an error */
         XLOG(I) << "Unsupported arguments: " << argv[optind - 1];
         XLOG(I) << kUsage;
+        return -EXIT_FAILURE;
         break;
 
       case 't':
@@ -486,7 +484,9 @@ int main(int argc, char** argv) {
   }
 
   if (!dx.empty()) {
+#ifdef DEBUG
     dx.save(std::cout);
+#endif
 
     pugi::xpath_node target_parent_xnode =
         dx.select_node(parent_node_path.c_str());

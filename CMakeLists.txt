@@ -9,13 +9,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 set(CMAKE_C_FLAGS                "-fPIC -Wall")
 set(CMAKE_C_FLAGS_DEBUG          "${CMAKE_C_FLAGS} -g -ggdb -DDEBUG")
 set(CMAKE_C_FLAGS_MINSIZEREL     "${CMAKE_C_FLAGS} Os")
-set(CMAKE_C_FLAGS_RELEASE        "${CMAKE_C_FLAGS} O4")
+set(CMAKE_C_FLAGS_RELEASE        "${CMAKE_C_FLAGS} O3")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS} O2 -g")
 
 set(CMAKE_CXX_FLAGS                "-fPIC -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS} -g -ggdb -DDEBUG")
 set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS} -Os")
-set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS} -O4")
+set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS} -O2 -g")
 
 # check out pugixml repo by git submodule
@@ -54,15 +54,15 @@ target_link_libraries(xmlabit ${pugi_library})
 
 # copy test xml file to build/
 set(test_dir "test")
-set(test_xml_file "books.xml")
+# set(test_xml_file "books.xml")
 
-if(NOT EXISTS ${CMAKE_BINARY_DIR}/${test_xml_file})
+# if(NOT EXISTS ${CMAKE_BINARY_DIR}/${test_xml_file})
 add_custom_target(copy_xml ALL
-  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/${test_dir}/${test_xml_file} ${CMAKE_BINARY_DIR}/${test_xml_file}
+  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/${test_dir}/* ${CMAKE_BINARY_DIR}/
   DEPENDS xmlabit
   COMMENT "Copying ${test_xml_file} ..."
   )
-endif()
+# endif()
 
 # make install
 install(TARGETS xmlabit RUNTIME DESTINATION bin)

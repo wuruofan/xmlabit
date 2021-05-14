@@ -35,8 +35,9 @@ Example:
 At project directory, run command:
 
 ```bash
-$ cmake -B build
+$ mkdir build
 $ cd build
+$ cmake ..
 $ make
 $ make install
 ```

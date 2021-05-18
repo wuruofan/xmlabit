@@ -4,7 +4,7 @@
 #   Author        : rf.w
 #   Email         : demonsimon#gmail.com
 #   File Name     : xmlabit.cpp
-#   Last Modified : 2021-05-12 20:28
+#   Last Modified : 2021-05-18 20:25
 #   Describe      :
 #
 # ====================================================*/
@@ -14,6 +14,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -42,7 +43,7 @@ using namespace xlogger;
 const char* node_types[] = {"null",  "document", "element", "pcdata",
                             "cdata", "comment",  "pi",      "declaration"};
 
-static const std::string kVersion = "0.1.0";
+static const std::string kVersion = "0.2.0";
 static const std::string kUsage =
     "Sort xml nodes/attributes by alphabet.\n"
     "\nUsage: xmlabit [options] -t <xml_nodes/attributes_name> -o "
@@ -51,8 +52,8 @@ static const std::string kUsage =
     "  -v, --version\t\tPrint version information.\n"
     "  -h, --help\t\tPrint this usage.\n"
     "  -t, --target\t\tXml nodes/attributes name which need to sort, like: "
-    "/xpath/of/parent_node#node_name@node_or_attribute_name, for example: "
-    "/bookstore#books@price.\n"
+    "/xpath/of/parent_node@node_name#node_or_attribute_name, for example: "
+    "/bookstore@books#price.\n"
     "  -o, --output\t\tOuput xml file path which sorted by xmlabit, if none "
     "output file argument is provided, then output to the screen.\n"
 #if ENABLE_NUMERIC_COMPAROR
@@ -67,8 +68,15 @@ const char* get_value(pugi::xml_node node, const char* attribute_name) {
     return node.attribute(attribute_name).value();
   else if (node.child(attribute_name))
     return node.child(attribute_name).text().get();
-  else
-    return nullptr;
+  else {
+    if (attribute_name == nullptr) {
+      XLOG(D) << "get_value: " << node.text().get() << " of " << node.name();
+      return node.text().get();
+    } else {
+      XLOG(D) << "get_value: " << node.value() << " of " << node.name();
+      return node.value();
+    }
+  }
 }
 
 int comparator(const char* lhs, const char* rhs, bool ascending_order = true,
@@ -338,7 +346,7 @@ std::string output_file_path(std::string input_file_path) {
 }
 
 int main(int argc, char** argv) {
-  // xmlabit -t /root/plcy/safeapp#item@name -n -d -o out_path.xml file_path.xml
+  // xmlabit -t /root/plcy/safeapp@item#name -n -d -o out_path.xml file_path.xml
   int ret = 0;
 #if ENABLE_NUMERIC_COMPAROR
   const char* optstring = "t:o:nidvh";
@@ -356,8 +364,10 @@ int main(int argc, char** argv) {
 
   // std::vector<std::string> input_files;
 
-  std::regex query_regex("\\S+#\\S+@\\S+");
-  // std::smatch query_match;
+  std::regex query_regex("(\\S+)@(\\S+)#(\\S+)");
+  std::regex query_regex_no_attr("(\\S+)@(\\S+)");
+  std::smatch matches;
+
   int choice;
   while (1) {
     static struct option long_options[] = {
@@ -406,21 +416,30 @@ int main(int argc, char** argv) {
 
       case 't':
         node_query_string = optarg;
-        if (std::regex_match(node_query_string, query_regex)) {
-          XLOG(D) << node_query_string;
-          const char* c = std::strchr(node_query_string.c_str(), '#');
-          const char* a = std::strchr(c, '@');
-          parent_node_path =
-              node_query_string.substr(0, c - node_query_string.c_str());
-          target_node_name = node_query_string.substr(
-              c + 1 - node_query_string.c_str(), a - c - 1);
-          target_attribute_name =
-              node_query_string.substr(a + 1 - node_query_string.c_str(),
-                                       node_query_string.c_str() - a - 1);
+        if (std::regex_match(node_query_string, matches, query_regex)) {
+          XLOG(D) << node_query_string
+                  << " has attribute, matches: " << matches.size();
+
+          assert(matches.size() == 4);
+
+          parent_node_path.assign(matches[1]);
+          target_node_name.assign(matches[2]);
+          target_attribute_name.assign(matches[3]);
 
           XLOG(D) << "parent node path: " << parent_node_path;
           XLOG(D) << "target node name: " << target_node_name;
           XLOG(D) << "target attribute: " << target_attribute_name;
+        } else if (std::regex_match(node_query_string, matches,
+                                    query_regex_no_attr)) {
+          XLOG(D) << node_query_string
+                  << " no attribute, matches: " << matches.size();
+          assert(matches.size() == 3);
+
+          parent_node_path.assign(matches[1]);
+          target_node_name.assign(matches[2]);
+
+          XLOG(D) << "parent node path: " << parent_node_path;
+          XLOG(D) << "target node name: " << target_node_name;
         } else {
           XLOG(E) << "Illegal arguments: " << node_query_string;
         }
@@ -488,8 +507,32 @@ int main(int argc, char** argv) {
     dx.save(std::cout);
 #endif
 
-    pugi::xpath_node target_parent_xnode =
-        dx.select_node(parent_node_path.c_str());
+    pugi::xpath_node target_parent_xnode;
+
+    try {
+      target_parent_xnode = dx.select_node(parent_node_path.c_str());
+
+      pugi::xml_node node =
+          target_parent_xnode.node().child(target_node_name.c_str());
+
+      if (!node) {
+        XLOG(E) << "Found target node failed: " << target_node_name;
+        return -EXIT_FAILURE;
+      } else if (!target_attribute_name.empty()) {
+        XLOG(D) << "attribute: " << target_attribute_name;
+        XLOG(D) << "> " << node.child(target_attribute_name.c_str());
+        XLOG(D) << "> " << node.attribute(target_attribute_name.c_str());
+        if (!(node.child(target_attribute_name.c_str()) ||
+              node.attribute(target_attribute_name.c_str()))) {
+          XLOG(E) << "Found target attribute failed: " << target_attribute_name;
+          return -EXIT_FAILURE;
+        }
+      }
+    } catch (const pugi::xpath_exception& e) {
+      XLOG(E) << "Select target parent node failed, " << parent_node_path
+              << ": " << e.what();
+      return -EXIT_FAILURE;
+    }
 
     std::clock_t c_start = std::clock();
 

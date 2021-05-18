@@ -4,7 +4,7 @@
 #   Author        : rf.w
 #   Email         : demonsimon#gmail.com
 #   File Name     : xmlabit.cpp
-#   Last Modified : 2021-05-18 20:25
+#   Last Modified : 2021-05-18 20:37
 #   Describe      :
 #
 # ====================================================*/
@@ -43,7 +43,7 @@ using namespace xlogger;
 const char* node_types[] = {"null",  "document", "element", "pcdata",
                             "cdata", "comment",  "pi",      "declaration"};
 
-static const std::string kVersion = "0.2.0";
+static const std::string kVersion = "0.2.1";
 static const std::string kUsage =
     "Sort xml nodes/attributes by alphabet.\n"
     "\nUsage: xmlabit [options] -t <xml_nodes/attributes_name> -o "
@@ -52,8 +52,8 @@ static const std::string kUsage =
     "  -v, --version\t\tPrint version information.\n"
     "  -h, --help\t\tPrint this usage.\n"
     "  -t, --target\t\tXml nodes/attributes name which need to sort, like: "
-    "/xpath/of/parent_node@node_name#node_or_attribute_name, for example: "
-    "/bookstore@books#price.\n"
+    "`/xpath/of/parent_node@node#attribute`, for example: "
+    "/bookstore@books#price. Extraly, `#attribute` can be omitted.\n"
     "  -o, --output\t\tOuput xml file path which sorted by xmlabit, if none "
     "output file argument is provided, then output to the screen.\n"
 #if ENABLE_NUMERIC_COMPAROR
@@ -69,13 +69,8 @@ const char* get_value(pugi::xml_node node, const char* attribute_name) {
   else if (node.child(attribute_name))
     return node.child(attribute_name).text().get();
   else {
-    if (attribute_name == nullptr) {
-      XLOG(D) << "get_value: " << node.text().get() << " of " << node.name();
-      return node.text().get();
-    } else {
-      XLOG(D) << "get_value: " << node.value() << " of " << node.name();
-      return node.value();
-    }
+    XLOG(D) << "get_value text: " << node.text().get() << " of " << node.name();
+    return node.text().get();
   }
 }
 

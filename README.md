@@ -20,7 +20,7 @@ Example:
 
   `-h`, `--help`		Print this usage.
 
-  `-t`, `--target`		Xml nodes/attributes name which need to sort, like: /xpath/of/parent_node#node_name@node_or_attribute_name, for example: /bookstore/#books@price.
+  `-t`, `--target`		Xml nodes/attributes name which need to sort, like: `/xpath/of/parent_node@node#attribute`, for example: /bookstore@books#price. Extraly, `#attribute` can be omitted.
 
   `-o`, `--output`		Ouput xml file path which sorted by xmlabit, if none output file argument is provided, then output to the screen.
 
@@ -54,7 +54,7 @@ If you want to compile debug version, please replace first command with `cmake -
 
 You can run command below at `build` directory:
 
-`./xmlabit -t /bookstore#book@title books.xml -o output.xml`
+`./xmlabit -t /bookstore@book#title books.xml -o output.xml`
 
 Input test xml file `books.xml`:
 
@@ -140,7 +140,7 @@ The output file `output.xml` is:
 
 Also you can run:
 
-`./xmlabit -t /bookstore/books#title@lang -d books2.xml`
+`./xmlabit -t /bookstore/books@title#lang -d books2.xml`
 
 Input test xml file `books2.xml`:
 
@@ -176,5 +176,43 @@ Output test xml is:
 </bookstore>
 ```
 
+### Example 3
 
+Also you can run:
+
+`./xmlabit -t /bookstore/books@title -d books2.xml`
+
+Input test xml file `books2.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<bookstore>
+  <books>
+    <title lang="eng" price="29.99">Harry Potter3</title>
+    <title lang="us" price="10">Harry Potter2</title>
+    <title lang="fr" price="2">Harry Potter</title>
+    <title lang="eng" price="5">readme</title>
+    <title lang="zh-CN" price="0.1">readme2</title>
+    <title lang="eng" price="92">Learning XML</title>
+    <title lang="eng" price="0.01">readme3</title>
+  </books>
+</bookstore>
+```
+
+Output test xml is:
+
+```xml
+<?xml version="1.0"?>
+<bookstore>
+	<books>
+		<title lang="fr" price="2">Harry Potter</title>
+		<title lang="us" price="10">Harry Potter2</title>
+		<title lang="eng" price="29.99">Harry Potter3</title>
+		<title lang="eng" price="92">Learning XML</title>
+		<title lang="eng" price="5">readme</title>
+		<title lang="zh-CN" price="0.1">readme2</title>
+		<title lang="eng" price="0.01">readme3</title>
+	</books>
+</bookstore>
+```
 

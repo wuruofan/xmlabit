@@ -50,9 +50,9 @@ If you want to compile debug version, please replace first command with `cmake -
 
 ## Examples:
 
-### Example 1
+You can run commands below at `build` directory:
 
-You can run command below at `build` directory:
+### Example 1
 
 `./xmlabit -t /bookstore@book#title books.xml -o output.xml`
 
@@ -138,8 +138,6 @@ The output file `output.xml` is:
 
 ### Example 2
 
-Also you can run:
-
 `./xmlabit -t /bookstore/books@title#lang -d books2.xml`
 
 Input test xml file `books2.xml`:
@@ -178,8 +176,6 @@ Output test xml is:
 
 ### Example 3
 
-Also you can run:
-
 `./xmlabit -t /bookstore/books@title -d books2.xml`
 
 Input test xml file `books2.xml`:
@@ -216,3 +212,42 @@ Output test xml is:
 </bookstore>
 ```
 
+### Example 4: sort attribute value as numeric.
+
+./xmlabit -t /bookstore/books@title#price -d -n books2.xml`
+
+Input test xml file `books2.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<bookstore>
+  <books>
+    <title lang="eng" price="29.99">Harry Potter3</title>
+    <title lang="us" price="10">Harry Potter2</title>
+    <title lang="fr" price="2">Harry Potter</title>
+    <title lang="eng" price="5">readme</title>
+    <title lang="zh-CN" price="0.1">readme2</title>
+    <title lang="eng" price="92">Learning XML</title>
+    <title lang="eng" price="0.01">readme3</title>
+  </books>
+</bookstore>
+```
+
+Output test xml is:
+
+```xml
+<?xml version="1.0"?>
+<bookstore>
+	<books>
+		<title lang="eng" price="92">Learning XML</title>
+		<title lang="eng" price="29.99">Harry Potter3</title>
+		<title lang="us" price="10">Harry Potter2</title>
+		<title lang="eng" price="5">readme</title>
+		<title lang="fr" price="2">Harry Potter</title>
+		<title lang="zh-CN" price="0.1">readme2</title>
+		<title lang="eng" price="0.01">readme3</title>
+	</books>
+</bookstore>
+```
+
+### 

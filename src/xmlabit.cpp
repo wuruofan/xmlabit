@@ -4,7 +4,7 @@
 #   Author        : rf.w
 #   Email         : demonsimon#gmail.com
 #   File Name     : xmlabit.cpp
-#   Last Modified : 2021-05-18 20:37
+#   Last Modified : 2021-05-19 18:31
 #   Describe      :
 #
 # ====================================================*/
@@ -22,6 +22,7 @@
 #include <iostream>
 #include <regex>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,7 +30,7 @@
 #include "pugixml.hpp"
 #include "xlogger.h"
 
-#define ENABLE_NUMERIC_COMPAROR 0
+#define ENABLE_NUMERIC_COMPAROR 1
 
 using namespace std;
 using namespace xlogger;
@@ -43,7 +44,7 @@ using namespace xlogger;
 const char* node_types[] = {"null",  "document", "element", "pcdata",
                             "cdata", "comment",  "pi",      "declaration"};
 
-static const std::string kVersion = "0.2.1";
+static const std::string kVersion = "0.2.2";
 static const std::string kUsage =
     "Sort xml nodes/attributes by alphabet.\n"
     "\nUsage: xmlabit [options] -t <xml_nodes/attributes_name> -o "
@@ -77,10 +78,16 @@ const char* get_value(pugi::xml_node node, const char* attribute_name) {
 int comparator(const char* lhs, const char* rhs, bool ascending_order = true,
                bool is_numeric = false) {
   int ascending_flag = ascending_order ? 1 : -1;
+  long double lhsd = 0.0, rhsd = 0.0;
 
   if (is_numeric) {
-    long double lhsd = std::stold(std::string(lhs));
-    long double rhsd = std::stold(std::string(rhs));
+    try {
+      lhsd = std::stold(std::string(lhs));
+      rhsd = std::stold(std::string(rhs));
+    } catch (const std::invalid_argument& e) {
+      throw std::runtime_error("target value not numeric!");
+    }
+
     long double ret = (lhsd - rhsd) * ascending_flag;
 
     // if lhs < rhs in numeric, return -1.
@@ -266,8 +273,8 @@ pugi::xml_node insert_node_relatively(pugi::xml_node& parent_node,
 
   XLOG(D) << "current_node: " << current_node.hash_value();
   XLOG(D) << "last_node: " << last_node.hash_value();
-  cout << "parent_node empty: " << parent_node.empty()
-       << ", last_node empty: " << last_node.empty();
+  XLOG(D) << "parent_node empty: " << parent_node.empty()
+          << ", last_node empty: " << last_node.empty();
   if (last_node.empty()) {
     ret_node = parent_node.append_copy(current_node);
 
@@ -306,7 +313,7 @@ pugi::xml_node insert_node_relatively(pugi::xml_node& parent_node,
   return ret_node;
 }
 
-std::string get_raw_string(pugi::xml_node node) {
+inline std::string get_raw_string(pugi::xml_node node) {
   std::stringstream ss;
 #ifdef DEBUG
   node.print(ss, "  ", pugi::format_raw);
@@ -338,6 +345,35 @@ std::string output_file_path(std::string input_file_path) {
   }
 
   return ss.str();
+}
+
+pugi::xpath_node&& check_node(const pugi::xml_document& dx,
+                             const string& parent_node_path,
+                             const string& node_name, const string& attr_name) {
+  pugi::xpath_node parent_xnode;
+  try {
+    parent_xnode = dx.select_node(parent_node_path.c_str());
+
+    pugi::xml_node node = parent_xnode.node().child(node_name.c_str());
+
+    if (!node) {
+      throw std::runtime_error("found target node failed: " + node_name + "!");
+    } else if (!attr_name.empty()) {
+      XLOG(D) << "attribute: " << attr_name;
+      XLOG(D) << "> " << node.child(attr_name.c_str());
+      XLOG(D) << "> " << node.attribute(attr_name.c_str());
+      if (!(node.child(attr_name.c_str()) ||
+            node.attribute(attr_name.c_str()))) {
+        throw std::runtime_error("found target attribute failed: " + attr_name +
+                                 "!");
+      }
+    }
+  } catch (const pugi::xpath_exception& e) {
+    throw std::runtime_error(
+        "select target parent node failed: " + parent_node_path + "!");
+  }
+
+  return std::move(parent_xnode);
 }
 
 int main(int argc, char** argv) {
@@ -492,7 +528,7 @@ int main(int argc, char** argv) {
 
   if (!result) {
     XLOG(E) << "XML file(" << in_file_path
-            << ") parsed with error: " << result.description() << " !";
+            << ") parsed with error: " << result.description() << "!";
 
     return -result.status;
   }
@@ -505,36 +541,28 @@ int main(int argc, char** argv) {
     pugi::xpath_node target_parent_xnode;
 
     try {
-      target_parent_xnode = dx.select_node(parent_node_path.c_str());
-
-      pugi::xml_node node =
-          target_parent_xnode.node().child(target_node_name.c_str());
-
-      if (!node) {
-        XLOG(E) << "Found target node failed: " << target_node_name;
-        return -EXIT_FAILURE;
-      } else if (!target_attribute_name.empty()) {
-        XLOG(D) << "attribute: " << target_attribute_name;
-        XLOG(D) << "> " << node.child(target_attribute_name.c_str());
-        XLOG(D) << "> " << node.attribute(target_attribute_name.c_str());
-        if (!(node.child(target_attribute_name.c_str()) ||
-              node.attribute(target_attribute_name.c_str()))) {
-          XLOG(E) << "Found target attribute failed: " << target_attribute_name;
-          return -EXIT_FAILURE;
-        }
-      }
-    } catch (const pugi::xpath_exception& e) {
-      XLOG(E) << "Select target parent node failed, " << parent_node_path
-              << ": " << e.what();
+      target_parent_xnode = check_node(dx, parent_node_path, target_node_name,
+                                       target_attribute_name);
+    } catch (const runtime_error& e) {
+      XLOG(E) << "Error: " << e.what();
       return -EXIT_FAILURE;
     }
 
     std::clock_t c_start = std::clock();
 
     auto t_start = std::chrono::high_resolution_clock::now();
-    sort_xml_node(target_parent_xnode.node(), target_node_name.c_str(),
-                  target_attribute_name.c_str(), acsecending_order,
-                  using_numeric_comparator);
+
+    try {
+      sort_xml_node(target_parent_xnode.node(), target_node_name.c_str(),
+                    target_attribute_name.c_str(), acsecending_order,
+                    using_numeric_comparator);
+
+    } catch (const std::runtime_error& e) {
+      XLOG(E) << "Error: " << e.what();
+
+      return -EXIT_FAILURE;
+    }
+
     std::clock_t c_end = std::clock();
 
     auto t_end = std::chrono::high_resolution_clock::now();

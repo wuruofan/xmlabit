@@ -28,6 +28,8 @@ Example:
 
   `-i`, `--ignore-case`	Case insensitive while sorting not in numeric mode.
 
+  `-n`, `--numeric`	Treat nodes/attributes value as number.
+
 
 
 ## Complie:
@@ -42,7 +44,7 @@ $ make
 $ make install
 ```
 
-If you want to compile debug version, please replace first command with `cmake -B build -DCMAKE_BUILD_TYPE=Debug`.
+If you want to compile debug version, please replace `cmake ..` with `cmake -B build -DCMAKE_BUILD_TYPE=Debug`.
 
 `make install` will put `xmlabit` at `/usr/local/bin` by default.
 
@@ -52,11 +54,11 @@ If you want to compile debug version, please replace first command with `cmake -
 
 You can run commands below at `build` directory:
 
-### Example 1
+### Example 1: sort node by sub node value
 
 `./xmlabit -t /bookstore@book#title books.xml -o output.xml`
 
-Input test xml file `books.xml`:
+Here is a test xml file `books.xml`, contains bookstore and book informations:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -95,6 +97,7 @@ Input test xml file `books.xml`:
   </book>
 </bookstore>
 ```
+If we want to sort books by book's title, the argument bebind `-t` is `/bookstore@book#title`, `/` means the root of XML, `/bookstore@book` means the name of the nodes to be sorted is `book`, the XPath is `/bookstore/book`, the value of sub node or attribute which named `title` will be used to sort.
 
 The output file `output.xml` is:
 
@@ -138,7 +141,7 @@ The output file `output.xml` is:
 
 ### Example 2
 
-`./xmlabit -t /bookstore/books@title#lang -d books2.xml`
+Here we have another `book2.xml`, which also contains books' information, but the structure of XML is different.
 
 Input test xml file `books2.xml`:
 
@@ -146,16 +149,42 @@ Input test xml file `books2.xml`:
 <?xml version="1.0" encoding="utf-8"?>
 <bookstore>
   <books>
-    <title lang="eng" price="29.99">Harry Potter3</title>
-    <title lang="us" price="10">Harry Potter2</title>
-    <title lang="fr" price="2">Harry Potter</title>
-    <title lang="eng" price="5">readme</title>
-    <title lang="zh-CN" price="0.1">readme2</title>
-    <title lang="eng" price="92">Learning XML</title>
-    <title lang="eng" price="0.01">readme3</title>
+    <book lang="eng" price="29.99">Harry Potter3</book>
+    <book lang="us" price="10">Harry Potter2</book>
+    <book lang="fr" price="2">Harry Potter</book>
+    <book lang="eng" price="5">readme</book>
+    <book lang="zh-CN" price="0.1">readme2</book>
+    <book lang="eng" price="92">Learning XML</book>
+    <book lang="eng" price="0.01">readme3</book>
   </books>
 </bookstore>
 ```
+
+
+#### 2.1 sort the `book`s descending by title
+
+`./xmlabit -t /bookstore/books@book -d books2.xml`
+
+Output xml is:
+
+```xml
+<?xml version="1.0"?>
+<bookstore>
+	<books>
+		<book lang="fr" price="2">Harry Potter</book>
+		<book lang="us" price="10">Harry Potter2</book>
+		<book lang="eng" price="29.99">Harry Potter3</book>
+		<book lang="eng" price="92">Learning XML</book>
+		<book lang="eng" price="5">readme</book>
+		<book lang="zh-CN" price="0.1">readme2</book>
+		<book lang="eng" price="0.01">readme3</book>
+	</books>
+</bookstore>
+```
+
+#### 2.2 sort all `book`s by attribute `lang`
+
+`./xmlabit -t /bookstore/books@book#lang books2.xml`
 
 Output test xml is:
 
@@ -163,91 +192,58 @@ Output test xml is:
 <?xml version="1.0"?>
 <bookstore>
 	<books>
-		<title lang="eng" price="29.99">Harry Potter3</title>
-		<title lang="eng" price="5">readme</title>
-		<title lang="eng" price="92">Learning XML</title>
-		<title lang="eng" price="0.01">readme3</title>
-		<title lang="fr" price="2">Harry Potter</title>
-		<title lang="us" price="10">Harry Potter2</title>
-		<title lang="zh-CN" price="0.1">readme2</title>
+		<book lang="eng" price="29.99">Harry Potter3</book>
+		<book lang="eng" price="5">readme</book>
+		<book lang="eng" price="92">Learning XML</book>
+		<book lang="eng" price="0.01">readme3</book>
+		<book lang="fr" price="2">Harry Potter</book>
+		<book lang="us" price="10">Harry Potter2</book>
+		<book lang="zh-CN" price="0.1">readme2</book>
 	</books>
 </bookstore>
 ```
 
-### Example 3
+#### Example 2.3: sort all `book`s by attribute `price`
 
-`./xmlabit -t /bookstore/books@title -d books2.xml`
+`./xmlabit -t /bookstore/books@book#price books2.xml`
 
-Input test xml file `books2.xml`:
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<bookstore>
-  <books>
-    <title lang="eng" price="29.99">Harry Potter3</title>
-    <title lang="us" price="10">Harry Potter2</title>
-    <title lang="fr" price="2">Harry Potter</title>
-    <title lang="eng" price="5">readme</title>
-    <title lang="zh-CN" price="0.1">readme2</title>
-    <title lang="eng" price="92">Learning XML</title>
-    <title lang="eng" price="0.01">readme3</title>
-  </books>
-</bookstore>
-```
-
-Output test xml is:
+Output xml is:
 
 ```xml
 <?xml version="1.0"?>
 <bookstore>
 	<books>
-		<title lang="fr" price="2">Harry Potter</title>
-		<title lang="us" price="10">Harry Potter2</title>
-		<title lang="eng" price="29.99">Harry Potter3</title>
-		<title lang="eng" price="92">Learning XML</title>
-		<title lang="eng" price="5">readme</title>
-		<title lang="zh-CN" price="0.1">readme2</title>
-		<title lang="eng" price="0.01">readme3</title>
+		<book lang="eng" price="0.01">readme3</book>
+		<book lang="zh-CN" price="0.1">readme2</book>
+		<book lang="us" price="10">Harry Potter2</book>
+		<book lang="fr" price="2">Harry Potter</book>
+		<book lang="eng" price="29.99">Harry Potter3</book>
+		<book lang="eng" price="5">readme</book>
+		<book lang="eng" price="92">Learning XML</book>
 	</books>
 </bookstore>
 ```
 
-### Example 4: sort attribute value as numeric.
+Because the value of `price` actually is a string, the xml sorted by alphabet.
 
-./xmlabit -t /bookstore/books@title#price -d -n books2.xml`
+#### Example 2.4: sort all `book`s by attribute `price` as numeric
 
-Input test xml file `books2.xml`:
+`./xmlabit -t /bookstore/books@book#price books2.xml -n`
 
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<bookstore>
-  <books>
-    <title lang="eng" price="29.99">Harry Potter3</title>
-    <title lang="us" price="10">Harry Potter2</title>
-    <title lang="fr" price="2">Harry Potter</title>
-    <title lang="eng" price="5">readme</title>
-    <title lang="zh-CN" price="0.1">readme2</title>
-    <title lang="eng" price="92">Learning XML</title>
-    <title lang="eng" price="0.01">readme3</title>
-  </books>
-</bookstore>
-```
-
-Output test xml is:
+Output xml is:
 
 ```xml
-<?xml version="1.0"?>
 <bookstore>
 	<books>
-		<title lang="eng" price="92">Learning XML</title>
-		<title lang="eng" price="29.99">Harry Potter3</title>
-		<title lang="us" price="10">Harry Potter2</title>
-		<title lang="eng" price="5">readme</title>
-		<title lang="fr" price="2">Harry Potter</title>
-		<title lang="zh-CN" price="0.1">readme2</title>
-		<title lang="eng" price="0.01">readme3</title>
+		<book lang="eng" price="0.01">readme3</book>
+		<book lang="zh-CN" price="0.1">readme2</book>
+		<book lang="fr" price="2">Harry Potter</book>
+		<book lang="eng" price="5">readme</book>
+		<book lang="us" price="10">Harry Potter2</book>
+		<book lang="eng" price="29.99">Harry Potter3</book>
+		<book lang="eng" price="92">Learning XML</book>
 	</books>
 </bookstore>
 ```
 
-### 
+

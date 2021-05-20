@@ -150,7 +150,7 @@ Input test xml file `books2.xml`:
 <bookstore>
   <books>
     <book lang="eng" price="29.99">Harry Potter3</book>
-    <book lang="us" price="10">Harry Potter2</book>
+    <book lang="us" price="10">harry potter2</book>
     <book lang="fr" price="2">Harry Potter</book>
     <book lang="eng" price="5">readme</book>
     <book lang="zh-CN" price="0.1">readme2</book>
@@ -171,18 +171,41 @@ Output xml is:
 <?xml version="1.0"?>
 <bookstore>
 	<books>
-		<book lang="fr" price="2">Harry Potter</book>
-		<book lang="us" price="10">Harry Potter2</book>
-		<book lang="eng" price="29.99">Harry Potter3</book>
-		<book lang="eng" price="92">Learning XML</book>
-		<book lang="eng" price="5">readme</book>
-		<book lang="zh-CN" price="0.1">readme2</book>
 		<book lang="eng" price="0.01">readme3</book>
+		<book lang="zh-CN" price="0.1">readme2</book>
+		<book lang="eng" price="5">readme</book>
+		<book lang="us" price="10">harry potter2</book>
+		<book lang="eng" price="92">Learning XML</book>
+		<book lang="eng" price="29.99">Harry Potter3</book>
+		<book lang="fr" price="2">Harry Potter</book>
 	</books>
 </bookstore>
 ```
 
-#### 2.2 sort all `book`s by attribute `lang`
+You can see, there is a book named <harry potter2> list before <Learning XML>, that because the ASCII value of lower case letter `h` is bigger than `L`.
+
+#### 2.2 sort the `book`s descending by title with case insensitive
+
+`./xmlabit -t /bookstore/books@book -di books2.xml`
+
+Output xml is:
+
+```xml
+<?xml version="1.0"?>
+<bookstore>
+	<books>
+		<book lang="eng" price="0.01">readme3</book>
+		<book lang="zh-CN" price="0.1">readme2</book>
+		<book lang="eng" price="5">readme</book>
+		<book lang="eng" price="92">Learning XML</book>
+		<book lang="eng" price="29.99">Harry Potter3</book>
+		<book lang="us" price="10">harry potter2</book>
+		<book lang="fr" price="2">Harry Potter</book>
+	</books>
+</bookstore>
+```
+
+#### 2.3 sort all `book`s by attribute `lang`
 
 `./xmlabit -t /bookstore/books@book#lang books2.xml`
 
@@ -197,13 +220,13 @@ Output test xml is:
 		<book lang="eng" price="92">Learning XML</book>
 		<book lang="eng" price="0.01">readme3</book>
 		<book lang="fr" price="2">Harry Potter</book>
-		<book lang="us" price="10">Harry Potter2</book>
+		<book lang="us" price="10">harry potter2</book>
 		<book lang="zh-CN" price="0.1">readme2</book>
 	</books>
 </bookstore>
 ```
 
-#### Example 2.3: sort all `book`s by attribute `price`
+#### 2.4: sort all `book`s by attribute `price`
 
 `./xmlabit -t /bookstore/books@book#price books2.xml`
 
@@ -215,7 +238,7 @@ Output xml is:
 	<books>
 		<book lang="eng" price="0.01">readme3</book>
 		<book lang="zh-CN" price="0.1">readme2</book>
-		<book lang="us" price="10">Harry Potter2</book>
+		<book lang="us" price="10">harry potter2</book>
 		<book lang="fr" price="2">Harry Potter</book>
 		<book lang="eng" price="29.99">Harry Potter3</book>
 		<book lang="eng" price="5">readme</book>
@@ -226,7 +249,7 @@ Output xml is:
 
 Because the value of `price` actually is a string, the xml sorted by alphabet.
 
-#### Example 2.4: sort all `book`s by attribute `price` as numeric
+#### 2.5: sort all `book`s by attribute `price` as numeric
 
 `./xmlabit -t /bookstore/books@book#price books2.xml -n`
 
@@ -239,11 +262,10 @@ Output xml is:
 		<book lang="zh-CN" price="0.1">readme2</book>
 		<book lang="fr" price="2">Harry Potter</book>
 		<book lang="eng" price="5">readme</book>
-		<book lang="us" price="10">Harry Potter2</book>
+		<book lang="us" price="10">harry potter2</book>
 		<book lang="eng" price="29.99">Harry Potter3</book>
 		<book lang="eng" price="92">Learning XML</book>
 	</books>
 </bookstore>
 ```
-
 

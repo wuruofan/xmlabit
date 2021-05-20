@@ -12,6 +12,7 @@
 #include <getopt.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <cstddef>
@@ -76,7 +77,7 @@ const char* get_value(pugi::xml_node node, const char* attribute_name) {
 }
 
 int comparator(const char* lhs, const char* rhs, bool ascending_order = true,
-               bool is_numeric = false) {
+               bool is_numeric = false, bool ignore_case = false) {
   int ascending_flag = ascending_order ? 1 : -1;
   long double lhsd = 0.0, rhsd = 0.0;
 
@@ -99,10 +100,20 @@ int comparator(const char* lhs, const char* rhs, bool ascending_order = true,
       return -1;
 
   } else {
-    // XLOG(D) << "[" << __func__ << "] " << lhs << " & " << rhs ;
+    XLOG(D) << "[" << __func__ << "] " << lhs << " & " << rhs;
 
     // if lhs < rhs in ASCII, then strcmp return negative value.
-    return std::strcmp(lhs, rhs) * ascending_flag;
+    if (ignore_case) {
+      std::string lhs_str(lhs);
+      std::string rhs_str(rhs);
+
+      transform(lhs_str.begin(), lhs_str.end(), lhs_str.begin(), ::tolower);
+      transform(rhs_str.begin(), rhs_str.end(), rhs_str.begin(), ::tolower);
+
+      return std::strcmp(lhs_str.c_str(), rhs_str.c_str()) * ascending_flag;
+    } else {
+      return std::strcmp(lhs, rhs) * ascending_flag;
+    }
   }
 }
 
@@ -155,7 +166,7 @@ pugi::xml_node find_insert_position_node(pugi::xml_node start_node,
 
 int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
                   const char* attribute_name, bool ascending_order = true,
-                  bool is_numeric = false) {
+                  bool is_numeric = false, bool ignore_case = false) {
   assert(parent_node);
   // assert(parent_node.children(child_name));
 
@@ -186,7 +197,7 @@ int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
 
     int result = comparator(get_value(mid_sorted_node, attribute_name),
                             get_value(curr_node, attribute_name),
-                            ascending_order, is_numeric);
+                            ascending_order, is_numeric, ignore_case);
 
     if (result > 0) {
       // mid_sorted_node value > curr_node, need find pos before it.
@@ -195,7 +206,7 @@ int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
       while (!pos_node.empty() &&
              comparator(get_value(pos_node, attribute_name),
                         get_value(curr_node, attribute_name), ascending_order,
-                        is_numeric) > 0) {
+                        is_numeric, ignore_case) > 0) {
         last_pos_node = pos_node;
         pos_node = pos_node.previous_sibling(child_name);
       }
@@ -256,6 +267,7 @@ int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
   return 0;
 }
 
+#if 0
 pugi::xml_node insert_node_relatively(pugi::xml_node& parent_node,
                                       const pugi::xml_node& current_node,
                                       pugi::xml_node& last_node,
@@ -312,6 +324,7 @@ pugi::xml_node insert_node_relatively(pugi::xml_node& parent_node,
 #endif
   return ret_node;
 }
+#endif
 
 inline std::string get_raw_string(pugi::xml_node node) {
   std::stringstream ss;
@@ -348,8 +361,9 @@ std::string output_file_path(std::string input_file_path) {
 }
 
 pugi::xpath_node&& check_node(const pugi::xml_document& dx,
-                             const string& parent_node_path,
-                             const string& node_name, const string& attr_name) {
+                              const string& parent_node_path,
+                              const string& node_name,
+                              const string& attr_name) {
   pugi::xpath_node parent_xnode;
   try {
     parent_xnode = dx.select_node(parent_node_path.c_str());
@@ -555,7 +569,7 @@ int main(int argc, char** argv) {
     try {
       sort_xml_node(target_parent_xnode.node(), target_node_name.c_str(),
                     target_attribute_name.c_str(), acsecending_order,
-                    using_numeric_comparator);
+                    using_numeric_comparator, comparator_ignore_case);
 
     } catch (const std::runtime_error& e) {
       XLOG(E) << "Error: " << e.what();

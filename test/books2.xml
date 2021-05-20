@@ -2,7 +2,7 @@
 <bookstore>
   <books>
     <book lang="eng" price="29.99">Harry Potter3</book>
-    <book lang="us" price="10">Harry Potter2</book>
+    <book lang="us" price="10">harry potter2</book>
     <book lang="fr" price="2">Harry Potter</book>
     <book lang="eng" price="5">readme</book>
     <book lang="zh-CN" price="0.1">readme2</book>

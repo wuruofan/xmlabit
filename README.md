@@ -4,15 +4,15 @@
 
 **A tool sort xml node by pugixml, sort xml nodes/attributes by alphabet.**
 
+中文说明文档：[XML排序小工具——xmlabit](https://wuruofan.com/2021/05/20/xmlabit-a-xml-node-sort-tool/)。
+
 ![GitHub Action](https://github.com/wuruofan/xmlabit/actions/workflows/cmake.yml/badge.svg)
+
 
 ## Usage: 
 
   `xmlabit [options] -t <xml_nodes/attributes_name> -o <output_xml_file> <input_xml_file>`
 
-
-
-Example: 
 
 ## Options:
 
@@ -31,7 +31,6 @@ Example:
   `-n`, `--numeric`	Treat nodes/attributes value as number.
 
 
-
 ## Complie:
 
 At project directory, run command:
@@ -47,7 +46,6 @@ $ make install
 If you want to compile debug version, please replace `cmake ..` with `cmake -B build -DCMAKE_BUILD_TYPE=Debug`.
 
 `make install` will put `xmlabit` at `/usr/local/bin` by default.
-
 
 
 ## Examples:

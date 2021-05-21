@@ -4,7 +4,7 @@
 #   Author        : rf.w
 #   Email         : demonsimon#gmail.com
 #   File Name     : xmlabit.cpp
-#   Last Modified : 2021-05-19 18:31
+#   Last Modified : 2021-05-21 18:14
 #   Describe      :
 #
 # ====================================================*/
@@ -31,8 +31,6 @@
 #include "pugixml.hpp"
 #include "xlogger.h"
 
-#define ENABLE_NUMERIC_COMPAROR 1
-
 using namespace std;
 using namespace xlogger;
 
@@ -45,7 +43,7 @@ using namespace xlogger;
 const char* node_types[] = {"null",  "document", "element", "pcdata",
                             "cdata", "comment",  "pi",      "declaration"};
 
-static const std::string kVersion = "0.2.2";
+static const std::string kVersion = "0.2.3";
 static const std::string kUsage =
     "Sort xml nodes/attributes by alphabet.\n"
     "\nUsage: xmlabit [options] -t <xml_nodes/attributes_name> -o "
@@ -58,9 +56,7 @@ static const std::string kUsage =
     "/bookstore@books#price. Extraly, `#attribute` can be omitted.\n"
     "  -o, --output\t\tOuput xml file path which sorted by xmlabit, if none "
     "output file argument is provided, then output to the screen.\n"
-#if ENABLE_NUMERIC_COMPAROR
     "  -n, --numeric\t\tTreat nodes/attributes value as number.\n"
-#endif
     "  -d, --desecend\tSort nodes/attributes value in deseconding order.\n"
     "  -i, --ignore-case\tCase insensitive while sorting not in numeric "
     "mode.\n";
@@ -136,33 +132,6 @@ inline const pugi::xml_node next_node(pugi::xml_node current_node,
 // node.print(oss);
 // return std::move(oss.str());
 // }
-
-pugi::xml_node find_insert_position_node(pugi::xml_node start_node,
-                                         const char* attribute_name,
-                                         const char* current_value,
-                                         bool walking_previous,
-                                         bool ascending_order = true) {
-  // if walk previous, walk stop while find node comparator result negative.
-  int stopping_comparartor_flag = walking_previous ? -1 : 1;
-  int comparator_result = 0;
-
-  pugi::xml_node pos_node = start_node;
-  pugi::xml_node node = next_node(start_node, walking_previous);
-
-  while (node) {
-    comparator_result = comparator(
-        current_value, get_value(node, attribute_name), ascending_order);
-    if (stopping_comparartor_flag && comparator_result) {
-      // find position
-      break;
-    } else {
-      pos_node = node;
-      node = next_node(node, walking_previous);
-    }
-  }
-
-  return pos_node;
-}
 
 int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
                   const char* attribute_name, bool ascending_order = true,
@@ -267,7 +236,35 @@ int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
   return 0;
 }
 
+
 #if 0
+pugi::xml_node find_insert_position_node(pugi::xml_node start_node,
+                                         const char* attribute_name,
+                                         const char* current_value,
+                                         bool walking_previous,
+                                         bool ascending_order = true) {
+  // if walk previous, walk stop while find node comparator result negative.
+  int stopping_comparartor_flag = walking_previous ? -1 : 1;
+  int comparator_result = 0;
+
+  pugi::xml_node pos_node = start_node;
+  pugi::xml_node node = next_node(start_node, walking_previous);
+
+  while (node) {
+    comparator_result = comparator(
+        current_value, get_value(node, attribute_name), ascending_order);
+    if (stopping_comparartor_flag && comparator_result) {
+      // find position
+      break;
+    } else {
+      pos_node = node;
+      node = next_node(node, walking_previous);
+    }
+  }
+
+  return pos_node;
+}
+
 pugi::xml_node insert_node_relatively(pugi::xml_node& parent_node,
                                       const pugi::xml_node& current_node,
                                       pugi::xml_node& last_node,
@@ -393,11 +390,7 @@ pugi::xpath_node&& check_node(const pugi::xml_document& dx,
 int main(int argc, char** argv) {
   // xmlabit -t /root/plcy/safeapp@item#name -n -d -o out_path.xml file_path.xml
   int ret = 0;
-#if ENABLE_NUMERIC_COMPAROR
   const char* optstring = "t:o:nidvh";
-#else
-  const char* optstring = "t:o:idvh";  // t:o:nidvh
-#endif
   std::string node_query_string;
   std::string in_file_path;
   std::string out_file_path;
@@ -416,20 +409,17 @@ int main(int argc, char** argv) {
   int choice;
   while (1) {
     static struct option long_options[] = {
-      /* Use flags like so:
-      {"verbose",	no_argument,	&verbose_flag, 'V'}*/
-      /* Argument styles: no_argument, required_argument, optional_argument */
-      {"version", no_argument, 0, 'v'},
-      {"help", no_argument, 0, 'h'},
-      {"target", required_argument, 0, 't'},
-      {"output", required_argument, 0, 'o'},
-#if ENABLE_NUMERIC_COMPAROR
-      {"numeric", no_argument, 0, 'n'},
-#endif
-      {"desecend", no_argument, 0, 'd'},
-      {"ignore-case", no_argument, 0, 'i'},
-      {0, 0, 0, 0}
-    };
+        /* Use flags like so:
+        {"verbose",	no_argument,	&verbose_flag, 'V'}*/
+        /* Argument styles: no_argument, required_argument, optional_argument */
+        {"version", no_argument, 0, 'v'},
+        {"help", no_argument, 0, 'h'},
+        {"target", required_argument, 0, 't'},
+        {"output", required_argument, 0, 'o'},
+        {"numeric", no_argument, 0, 'n'},
+        {"desecend", no_argument, 0, 'd'},
+        {"ignore-case", no_argument, 0, 'i'},
+        {0, 0, 0, 0}};
 
     int option_index = 0;
 
@@ -493,11 +483,9 @@ int main(int argc, char** argv) {
       case 'o':
         out_file_path = optarg;
         break;
-#if ENABLE_NUMERIC_COMPAROR
       case 'n':
         using_numeric_comparator = true;
         break;
-#endif
       case 'i':
         comparator_ignore_case = true;
         break;

@@ -30,7 +30,7 @@
 
   `-n`, `--numeric`		Treat nodes/attributes value as number.
 
-  `-s`, `--sort-attr`	Sort nodes' attributes by alphabet.
+  `-s`, `--sort-attrs`	Sort nodes' attributes by alphabet.
 
 ## Complie:
 

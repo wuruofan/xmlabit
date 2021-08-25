@@ -61,7 +61,8 @@ static const std::string kUsage =
     "  -n, --numeric\t\tTreat nodes/attributes value as number.\n"
     "  -d, --desecend\tSort nodes/attributes value in deseconding order.\n"
     "  -i, --ignore-case\tCase insensitive while sorting not in numeric "
-    "mode.\n";
+    "mode.\n"
+    "  -s, --sort-attr\t\tSort nodes' attributes by alphabet.\n";
 
 const char *get_attribute_value(pugi::xml_node node,
                                 const char *attribute_name) {

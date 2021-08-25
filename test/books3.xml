@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<bookstore>
+  <books>
+    <book lang="eng" price="29.99" day="20" month="May" year="2019">Harry Potter3</book>
+    <book month="May" day="20" year="2019" price="10" lang="us" >harry potter2</book>
+    <book lang="fr" month="May" price="2" day="20" year="2019">Harry Potter</book>
+    <book lang="eng" year="2019" month="May" day="20" price="5">readme</book>
+    <book month="May" year="2019" day="20" lang="zh-CN" price="0.1">readme2</book>
+  </books>
+</bookstore>

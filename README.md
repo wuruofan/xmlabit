@@ -28,8 +28,9 @@
 
   `-i`, `--ignore-case`	Case insensitive while sorting not in numeric mode.
 
-  `-n`, `--numeric`	Treat nodes/attributes value as number.
+  `-n`, `--numeric`		Treat nodes/attributes value as number.
 
+  `-s`, `--sort-attr`	Sort nodes' attributes by alphabet.
 
 ## Complie:
 
@@ -139,7 +140,7 @@ The output file `output.xml` is:
 
 ### Example 2
 
-Here we have another `book2.xml`, which also contains books' information, but the structure of XML is different.
+Here we have another `books2.xml`, which also contains books' information, but the structure of XML is different.
 
 Input test xml file `books2.xml`:
 
@@ -267,3 +268,40 @@ Output xml is:
 </bookstore>
 ```
 
+### Example 3: sort nodes, also sort nodes' attributes
+
+Here we have another `books3.xml`, very like `books2.xml`, but each node contains more attributes which are disordered too.
+
+Input test xml file `books3.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<bookstore>
+  <books>
+    <book lang="eng" price="29.99" day="20" month="May" year="2019">Harry Potter3</book>
+    <book month="May" day="20" year="2019" price="10" lang="us" >harry potter2</book>
+    <book lang="fr" month="May" price="2" day="20" year="2019">Harry Potter</book>
+    <book lang="eng" year="2019" month="May" day="20" price="5">readme</book>
+    <book month="May" year="2019" day="20" lang="zh-CN" price="0.1">readme2</book>
+  </books>
+</bookstore>
+```
+
+Run:
+
+`xmlabit -t /bookstore/books@book#lang books3.xml -s`
+
+Output xml is:
+
+```xml
+<?xml version="1.0"?>
+<bookstore>
+  <books>
+    <book day="20" lang="eng" month="May" price="29.99" year="2019">Harry Potter3</book>
+    <book day="20" lang="eng" month="May" price="5" year="2019">readme</book>
+    <book day="20" lang="fr" month="May" price="2" year="2019">Harry Potter</book>
+    <book day="20" lang="us" month="May" price="10" year="2019">harry potter2</book>
+    <book day="20" lang="zh-CN" month="May" price="0.1" year="2019">readme2</book>
+  </books>
+</bookstore>
+```

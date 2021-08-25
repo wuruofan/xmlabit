@@ -45,7 +45,7 @@ using namespace xlogger;
 const char *node_types[] = {"null",  "document", "element", "pcdata",
                             "cdata", "comment",  "pi",      "declaration"};
 
-static const std::string kVersion = "0.2.3";
+static const std::string kVersion = "0.2.4";
 static const std::string kUsage =
     "Sort xml nodes/attributes by alphabet.\n"
     "\nUsage: xmlabit [options] -t <xml_nodes/attributes_name> -o "

@@ -9,7 +9,9 @@
 #
 # ====================================================*/
 
+#include <cstdio>
 #include <getopt.h>
+#include <iterator>
 #include <unistd.h>
 
 #include <algorithm>
@@ -61,7 +63,7 @@ static const std::string kUsage =
     "  -i, --ignore-case\tCase insensitive while sorting not in numeric "
     "mode.\n";
 
-const char* get_value(pugi::xml_node node, const char* attribute_name) {
+const char* get_attribute_value(pugi::xml_node node, const char* attribute_name) {
   if (node.attribute(attribute_name))
     return node.attribute(attribute_name).value();
   else if (node.child(attribute_name))
@@ -96,7 +98,7 @@ int comparator(const char* lhs, const char* rhs, bool ascending_order = true,
       return -1;
 
   } else {
-    XLOG(D) << "[" << __func__ << "] " << lhs << " & " << rhs;
+    int ret = 0;
 
     // if lhs < rhs in ASCII, then strcmp return negative value.
     if (ignore_case) {
@@ -106,10 +108,18 @@ int comparator(const char* lhs, const char* rhs, bool ascending_order = true,
       transform(lhs_str.begin(), lhs_str.end(), lhs_str.begin(), ::tolower);
       transform(rhs_str.begin(), rhs_str.end(), rhs_str.begin(), ::tolower);
 
-      return std::strcmp(lhs_str.c_str(), rhs_str.c_str()) * ascending_flag;
+      ret = std::strcmp(lhs_str.c_str(), rhs_str.c_str()) * ascending_flag;
     } else {
-      return std::strcmp(lhs, rhs) * ascending_flag;
+      ret = std::strcmp(lhs, rhs) * ascending_flag;
     }
+
+    XLOG(D) << "[" << __func__ << "] " << lhs
+            << (ret < 0     ? " < "
+                : (ret > 0) ? " > "
+                            : "==")
+            << rhs << ", ret = " << ret;
+
+    return ret;
   }
 }
 
@@ -133,13 +143,118 @@ inline const pugi::xml_node next_node(pugi::xml_node current_node,
 // return std::move(oss.str());
 // }
 
+/* sort current xml_node's attributes by alphabet */
+int sort_node_attributes(pugi::xml_node curr_node) {
+  assert(curr_node);
+
+  if (curr_node.attributes().empty()) {
+    return 0;
+  }
+
+  // if (std::distance(curr_node.attributes_end(), curr_node.attributes_begin()) == 1) {
+  //   return 0;
+  // }
+#ifdef DEBUG
+  XLOG(D) << "\n>>> before attributes sort: ";
+  curr_node.print(std::cout); 
+  XLOG(D) << "\n";
+#endif
+
+  pugi::xml_attribute mid_sorted_attr;
+
+  int sorted_attr_count = 0;
+
+  for (auto curr_attr = curr_node.first_attribute(); curr_attr;
+       sorted_attr_count++) {
+    if (mid_sorted_attr.empty()) {
+      mid_sorted_attr = curr_attr;
+      curr_attr = curr_attr.next_attribute();
+      continue;
+    }
+
+    pugi::xml_attribute pos_attr, next_attr;
+
+    pugi::xml_attribute tmp_attr = curr_attr; // use to remove
+
+    next_attr = curr_attr.next_attribute();
+    pos_attr = curr_attr;
+
+    std::string attr_name = curr_attr.name();
+    std::string attr_value = curr_attr.value();
+
+    XLOG(D) << "curr_attr name: " << attr_name << ", mid_sorted_attr name: " << mid_sorted_attr.name();
+
+    int result = comparator(mid_sorted_attr.name(), curr_attr.name());
+
+    if (result > 0) {
+      // mid_sorted_attr name > curr_attr, need find pos before it.
+      XLOG(D) << "mid_sorted_attr's name > curr_attr's name: " << mid_sorted_attr.name() << ", " << curr_attr.name();
+      pugi::xml_attribute last_pos_attr = mid_sorted_attr;
+      pos_attr = mid_sorted_attr.previous_attribute();
+
+      while (!pos_attr.empty() &&
+             comparator(pos_attr.name(), curr_attr.name()) > 0) {
+        last_pos_attr = pos_attr;
+        pos_attr = pos_attr.previous_attribute();
+      }
+
+      curr_node.remove_attribute(tmp_attr);
+      curr_attr = next_attr;
+
+      if (pos_attr.empty()) {
+        curr_node.insert_attribute_before(attr_name.c_str(), last_pos_attr) =
+            attr_value.c_str();
+      } else {
+        curr_node.insert_attribute_after(attr_name.c_str(), pos_attr) =
+            attr_value.c_str();
+      }
+
+    } else {
+      // mid_sorted_attr name < curr_attr, need find pos after it.
+      XLOG(D) << "mid_sorted_attr's name < curr_attr's name: " << mid_sorted_attr.name() << ", " << curr_attr.name();
+      pos_attr = mid_sorted_attr.next_attribute();
+      XLOG(D) << pos_attr;
+      while (pos_attr != curr_attr &&
+             comparator(pos_attr.name(), curr_attr.name()) < 0) {
+        pos_attr = pos_attr.next_attribute();
+      }
+
+      if (pos_attr == curr_attr) {
+        // do nothing
+      } else {
+        curr_node.remove_attribute(tmp_attr);
+        curr_node.insert_attribute_before(attr_name.c_str(), pos_attr) =
+            attr_value.c_str();
+      }
+
+      curr_attr = next_attr;
+    }
+
+    if (sorted_attr_count % 2 == 0) {
+      if (result > 0) {
+        // already insert one node in front mid_sorted_node, not need to move.
+      } else {
+        mid_sorted_attr = mid_sorted_attr.next_attribute();
+      }
+    }
+  }
+
+#ifdef DEBUG
+  XLOG(D) << ">>> after attributes sort: ";
+  curr_node.print(std::cout);
+  XLOG(D) << "\n";
+#endif
+
+  return 0;
+}
+
+
 int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
                   const char* attribute_name, bool ascending_order = true,
-                  bool is_numeric = false, bool ignore_case = false) {
+                  bool is_numeric = false, bool ignore_case = false, bool sorting_attr = false) {
   assert(parent_node);
   // assert(parent_node.children(child_name));
 
-  pugi::xml_node prev_node;
   pugi::xml_node pos_node;
   pugi::xml_node tmp_curr_node;
 
@@ -148,6 +263,11 @@ int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
 
   for (pugi::xml_node curr_node = parent_node.child(child_name); curr_node;
        curr_node = curr_node.next_sibling(child_name), sorted_node_count++) {
+
+    if (sorting_attr) {
+      sort_node_attributes(curr_node);
+    }
+    
     tmp_curr_node = curr_node.previous_sibling(child_name);
     pos_node = curr_node;
 
@@ -164,8 +284,8 @@ int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
       continue;
     }
 
-    int result = comparator(get_value(mid_sorted_node, attribute_name),
-                            get_value(curr_node, attribute_name),
+    int result = comparator(get_attribute_value(mid_sorted_node, attribute_name),
+                            get_attribute_value(curr_node, attribute_name),
                             ascending_order, is_numeric, ignore_case);
 
     if (result > 0) {
@@ -173,8 +293,8 @@ int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
       pugi::xml_node last_pos_node = mid_sorted_node;
       pos_node = mid_sorted_node.previous_sibling(child_name);
       while (!pos_node.empty() &&
-             comparator(get_value(pos_node, attribute_name),
-                        get_value(curr_node, attribute_name), ascending_order,
+             comparator(get_attribute_value(pos_node, attribute_name),
+                        get_attribute_value(curr_node, attribute_name), ascending_order,
                         is_numeric, ignore_case) > 0) {
         last_pos_node = pos_node;
         pos_node = pos_node.previous_sibling(child_name);
@@ -201,8 +321,8 @@ int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
       // mid_sorted_node value < curr_node, need find pos after it.
       pos_node = mid_sorted_node.next_sibling(child_name);
       while (pos_node != curr_node &&
-             comparator(get_value(pos_node, attribute_name),
-                        get_value(curr_node, attribute_name), ascending_order,
+             comparator(get_attribute_value(pos_node, attribute_name),
+                        get_attribute_value(curr_node, attribute_name), ascending_order,
                         is_numeric) < 0) {
         pos_node = pos_node.next_sibling(child_name);
       }
@@ -235,7 +355,6 @@ int sort_xml_node(pugi::xml_node parent_node, const char* child_name,
 
   return 0;
 }
-
 
 #if 0
 pugi::xml_node find_insert_position_node(pugi::xml_node start_node,
@@ -370,9 +489,9 @@ pugi::xpath_node&& check_node(const pugi::xml_document& dx,
     if (!node) {
       throw std::runtime_error("found target node failed: " + node_name + "!");
     } else if (!attr_name.empty()) {
-      XLOG(D) << "attribute: " << attr_name;
-      XLOG(D) << "> " << node.child(attr_name.c_str());
-      XLOG(D) << "> " << node.attribute(attr_name.c_str());
+      // XLOG(D) << "attribute: " << attr_name;
+      // XLOG(D) << "> " << node.child(attr_name.c_str());
+      // XLOG(D) << "> " << node.attribute(attr_name.c_str());
       if (!(node.child(attr_name.c_str()) ||
             node.attribute(attr_name.c_str()))) {
         throw std::runtime_error("found target attribute failed: " + attr_name +
@@ -390,13 +509,14 @@ pugi::xpath_node&& check_node(const pugi::xml_document& dx,
 int main(int argc, char** argv) {
   // xmlabit -t /root/plcy/safeapp@item#name -n -d -o out_path.xml file_path.xml
   int ret = 0;
-  const char* optstring = "t:o:nidvh";
+  const char* optstring = "t:o:nidvhs";
   std::string node_query_string;
   std::string in_file_path;
   std::string out_file_path;
   std::string parent_node_path, target_node_name, target_attribute_name;
   bool using_numeric_comparator = false, comparator_ignore_case = false,
        acsecending_order = true;
+  bool sorting_attributes = false;
 
   set_level_threshold(LOG_LEVEL);
 
@@ -419,6 +539,7 @@ int main(int argc, char** argv) {
         {"numeric", no_argument, 0, 'n'},
         {"desecend", no_argument, 0, 'd'},
         {"ignore-case", no_argument, 0, 'i'},
+        {"sort-attrs", no_argument, 0, 's'},
         {0, 0, 0, 0}};
 
     int option_index = 0;
@@ -493,6 +614,9 @@ int main(int argc, char** argv) {
         acsecending_order = false;
         XLOG(D) << "choose descending order!";
         break;
+      case 's':
+        sorting_attributes = true;
+        break;
       default:
         /* Not sure how to get here... */
         ret = EXIT_FAILURE;
@@ -557,7 +681,15 @@ int main(int argc, char** argv) {
     try {
       sort_xml_node(target_parent_xnode.node(), target_node_name.c_str(),
                     target_attribute_name.c_str(), acsecending_order,
-                    using_numeric_comparator, comparator_ignore_case);
+                    using_numeric_comparator, comparator_ignore_case,
+                    sorting_attributes);
+
+#ifdef DEBUG_SORT_ATTR
+      for (pugi::xml_node curr_node = target_parent_xnode.node().child(target_node_name.c_str()); curr_node;
+       curr_node = curr_node.next_sibling(target_node_name.c_str())) {
+         sort_node_attributes(curr_node);
+       }
+#endif
 
     } catch (const std::runtime_error& e) {
       XLOG(E) << "Error: " << e.what();
